@@ -42,10 +42,19 @@ Annotations
 -----------
 
 Segment annotations => Protocol parameters
+
+
+
+Notes
+-----
+
+- Empty protocols, unless defined
+- DeviceInfo names must be .channels.{i} for individual channels or .arrays.{i}.channels{j} for AnalogSignalArrays from provided root
+-
 """
 
 
-def import_block(block, epoch_group, source):
+def import_block(block, device_info, epoch_group, source):
     """
     Imports a Neo Block as a single Ovation EpochGroup
 
