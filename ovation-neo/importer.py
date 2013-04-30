@@ -21,7 +21,7 @@ Epoch => TimelineAnnotation
 Container Objects
 -----------------
 
-Segment => Epoch
+Segment => Epoch3
 Block => EpochGroup
 
 
@@ -54,9 +54,31 @@ Notes
 """
 
 
-def import_block(block, device_info, epoch_group, source):
-    """
-    Imports a Neo Block as a single Ovation EpochGroup
+def import_block(block, device_info, device_info_root, epoch_group_container, source):
+    """Import a `Neo <http://neuralensemble.org/neo/>`_ `Block` as a single Ovation `EpochGroup`
+
+
+    Parameters
+    ----------
+
+    block : neo.Block
+        `neo.Block` to import
+    device_info : ovation.DeviceInfo
+        `ovation.DeviceInfo` providing equipment description for the `Block`. The device info must contain
+        `.channels.{i}` for individual channels or `.arrays.{i}.channels{j}` for `AnalogSignalArrays` from the
+        `device_info_root` provided root
+    device_info_root : str
+        Root name for device info for data contained in `block`
+    epoch_group : ovation.EpochGroug or ovation.Experiment
+        Data is inserted into this container as a new `ovation.EpochGroup`
+    source : ovation.Subject
+        Root `Subject` for data contained in `block`
+
+
+    Returns
+    -------
+
+    The inserted `ovation.EpochGroup`
 
     """
 
