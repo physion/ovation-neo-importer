@@ -4,7 +4,6 @@ This module provides a mapping from the Neo core data model to Ovation's data mo
 
 __copyright__ = 'Copyright (c) 2013. Physion Consulting. All rights reserved.'
 
-
 """
 MAPPING
 =======
@@ -53,8 +52,38 @@ Notes
 -
 """
 
+import neo.io as nio
 
-def import_block(block, device_info, device_info_root, epoch_group_container, source):
+
+def import_file(file_path, epoch_group_container, device_info, device_info_root, source):
+    """Import a Neo IO readable file
+
+    Parameters
+    ----------
+
+    file_path : str
+        Path to file to import
+    epoch_group_container : ovation.EpochGroup or ovation.Experiment
+
+
+    Returns
+    -------
+
+    The inserted `ovation.EpochGroup`
+
+    """
+
+    reader = nio.PlexonIO(file_path)
+    block = reader.read()
+
+    return import_block(block,
+                        epoch_group_container,
+                        device_info,
+                        device_info_root,
+                        source)
+
+
+def import_block(epoch_group_container, block, device_info, device_info_root, source):
     """Import a `Neo <http://neuralensemble.org/neo/>`_ `Block` as a single Ovation `EpochGroup`
 
 
@@ -69,7 +98,7 @@ def import_block(block, device_info, device_info_root, epoch_group_container, so
         `device_info_root` provided root
     device_info_root : str
         Root name for device info for data contained in `block`
-    epoch_group : ovation.EpochGroug or ovation.Experiment
+    epoch_group : ovation.EpochGroup or ovation.Experiment
         Data is inserted into this container as a new `ovation.EpochGroup`
     source : ovation.Subject
         Root `Subject` for data contained in `block`
