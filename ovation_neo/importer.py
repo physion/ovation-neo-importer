@@ -12,6 +12,7 @@ Data Objects
 ------------
 
 AnalogSignal => Measurement
+    Name?
 Spike => spike_times + spike_waveforms (see SpikeTrain)
 Event => TimelineAnnotation
 Epoch => TimelineAnnotation
@@ -20,7 +21,7 @@ Epoch => TimelineAnnotation
 Container Objects
 -----------------
 
-Segment => Epoch3
+Segment => Epoch
 Block => EpochGroup
 
 
@@ -55,7 +56,7 @@ Notes
 import neo.io as nio
 
 
-def import_file(file_path, epoch_group_container, device_info, device_info_root, source):
+def import_file(file_path, epoch_group_container, equipment_setup, equipment_setup_root, source):
     """Import a Neo IO readable file
 
     Parameters
@@ -64,6 +65,13 @@ def import_file(file_path, epoch_group_container, device_info, device_info_root,
     file_path : str
         Path to file to import
     epoch_group_container : ovation.EpochGroup or ovation.Experiment
+        Container for the inserted `ovation.EpochGroup`
+    equipment_setup : ovation.EquipmentSetup
+        Experiment `EquipmentSetup` for the data contained in the file to be imported
+    equipment_setup_root : str
+        Root path for equipment setup describing equipment that recorded the data to be imported
+    source : ovation.Source
+        Experimental `Subject` for data contained in file to be imported
 
 
     Returns
@@ -73,17 +81,17 @@ def import_file(file_path, epoch_group_container, device_info, device_info_root,
 
     """
 
-    reader = nio.PlexonIO(file_path)
+    reader = nio.PlexonIO(filename=file_path)
     block = reader.read()
 
     return import_block(block,
                         epoch_group_container,
-                        device_info,
-                        device_info_root,
+                        equipment_setup,
+                        equipment_setup_root,
                         source)
 
 
-def import_block(epoch_group_container, block, device_info, device_info_root, source):
+def import_block(epoch_group_container, block, equipment_setup, equipment_setup_root, source):
     """Import a `Neo <http://neuralensemble.org/neo/>`_ `Block` as a single Ovation `EpochGroup`
 
 
@@ -92,16 +100,14 @@ def import_block(epoch_group_container, block, device_info, device_info_root, so
 
     block : neo.Block
         `neo.Block` to import
-    device_info : ovation.DeviceInfo
-        `ovation.DeviceInfo` providing equipment description for the `Block`. The device info must contain
-        `.channels.{i}` for individual channels or `.arrays.{i}.channels{j}` for `AnalogSignalArrays` from the
-        `device_info_root` provided root
-    device_info_root : str
-        Root name for device info for data contained in `block`
-    epoch_group : ovation.EpochGroup or ovation.Experiment
-        Data is inserted into this container as a new `ovation.EpochGroup`
-    source : ovation.Subject
-        Root `Subject` for data contained in `block`
+    epoch_group_container : ovation.EpochGroup or ovation.Experiment
+        Container for the inserted `ovation.EpochGroup`
+    equipment_setup : ovation.EquipmentSetup
+        Experiment `EquipmentSetup` for the data contained in the file to be imported
+    equipment_setup_root : str
+        Root path for equipment setup describing equipment that recorded the data to be imported
+    source : ovation.Source
+        Experimental `Subject` for data contained in `block`
 
 
     Returns
@@ -111,4 +117,4 @@ def import_block(epoch_group_container, block, device_info, device_info_root, so
 
     """
 
-    pass
+    return None
