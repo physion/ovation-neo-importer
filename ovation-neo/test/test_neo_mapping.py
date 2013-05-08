@@ -1,6 +1,7 @@
-from nose.tools import istest
 from ovation import initVM, DateTime
 from ovation.testing import local_stack
+
+from nose.tools import istest
 
 
 def setup_module():
@@ -14,5 +15,10 @@ def should_import_example_abf():
         ctx = dsc.getContext()
 
         proj = ctx.insertProject('ABF import', 'ABF import', DateTime())
+
         exp = proj.insertExperiment('ABF experiment', DateTime())
-        device_info = None
+        device_info = {"amplifier": {"mode": "I-clamp",
+                                     "gain": 2.5}}
+        exp.setEquipmentSetup(device_info)
+
+
