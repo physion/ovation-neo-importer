@@ -6,8 +6,9 @@ from ovation_neo.importer import import_file
 from neo.io import AxonIO
 
 from ovation import initVM, DateTime, NumericMeasurement
-from ovation.numpy import to_ndarray
+from ovation.numpy import asarray
 from ovation.testing import make_local_stack
+from ovation.maps import to_map
 
 class TestAxonImport(object):
     @classmethod
@@ -25,7 +26,8 @@ class TestAxonImport(object):
         device_info = {"amplifier": {"mode": "I-clamp",
                                      "channels": {1: {"gain": 2.5},
                                                   2: {"gain": 3.5}}}}
-        exp.setEquipmentSetup(device_info)
+        
+        exp.setEquipmentSetup(to_map(device_info))
 
         src = ctx.insertSource("recording source", "source-id")
 
@@ -76,7 +78,7 @@ class TestAxonImport(object):
 
 def check_numeric_measurement(signal, m):
     nd = NumericMeasurement.cast_(m).getNumericData()
-    data = to_ndarray(nd.getData())
+    data = asarray(nd.getData())
     assert_equals(signal.units, data.units)
     assert_sequence_equal(signal.shape == data.shape)
     assert_sequence_equal(signal == data)
