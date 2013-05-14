@@ -1,14 +1,15 @@
 import itertools
 
+import numpy as np
+
 from nose.tools import istest, assert_equals, assert_sequence_equal, assert_true
 from ovation_neo.importer import import_file
 
 from neo.io import AxonIO
 
-from ovation import initVM, DateTime, NumericMeasurement, DateTime
-from ovation.numpy import asarray
+from ovation import initVM, DateTime, NumericMeasurement, DateTime, DataElement, us_physion_ovation_domain_impl_NumericMeasurement
 from ovation.testing import make_local_stack
-from ovation.conversion import to_map
+from ovation.conversion import to_map, asarray
 
 class TestAxonImport(object):
     @classmethod
@@ -85,11 +86,11 @@ class TestAxonImport(object):
 
 
 def check_numeric_measurement(signal, m):
-    nd = NumericMeasurement.cast_(m).getNumericData()
+    nd = us_physion_ovation_domain_impl_NumericMeasurement.numericDataFromFile(DataElement.cast_(m).getData().get())
     data = asarray(nd.getData())
     assert_equals(signal.units, data.units)
-    assert_sequence_equal(signal.shape == data.shape)
-    assert_sequence_equal(signal == data)
+    assert_sequence_equal(signal.shape, data.shape)
+    assert_true(np.all(np.asarray(signal) == np.asarray(data)))
     assert_equals(signal.sampling_rate, data.sampling_rate)
 
 
@@ -97,8 +98,10 @@ def check_measurements(segment, epoch):
     assert_equals(len(segment.analogsignals), len(list(epoch.getMeasurements())))
 
     measurements = dict(((m.getName(), m) for m in epoch.getMeasurements()))
+    
     for signal in segment.analogsignals:
-        m = measurements['channel_' + signal.annotations['channel_index']]
+        print measurements
+        m = measurements[signal.name]
         check_numeric_measurement(signal, m)
 
 

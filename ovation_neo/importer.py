@@ -56,6 +56,7 @@ Notes
 import os.path
 import neo.io as nio
 import quantities as pq
+import logging
 
 try:
     from itertools import chain
@@ -65,8 +66,7 @@ except ImportError:
 
 
 from ovation import *
-from ovation.conversion import to_map
-from ovation.numpy import as_numeric_data
+from ovation.conversion import to_map, as_numeric_data
 
 # Map from file extension to importer
 __IMPORTERS = {
@@ -177,9 +177,9 @@ def import_block(epoch_group_container,
                                                                                     to_map(device_parameters)
                                                                                 )
 
-    print("Importing segments...")
+    logging.info("Importing segments from {}".format(block.file_origin))
     for seg in block.segments:
-        print("\tImporting segment " + str(seg.index))
+        logging.info("Importing segment {} from {}".format(str(seg.index), block.file_origin))
         import_segment(epochGroup, seg, protocol=protocol, equipment_setup_root=equipment_setup_root)
 
     return epochGroup
@@ -222,10 +222,6 @@ def import_analog_signal_array(epoch, signal_array, equipment_setup_root):
 def import_analog_signal(epoch, analog_signal, equipment_setup_root):
 
     ndata = as_numeric_data(analog_signal)
-
-    print(ndata)
-    print(ndata.getData())
-
     m = epoch.insertNumericMeasurement(analog_signal.name,
                                        Sets.newHashSet(),
                                        Sets.newHashSet((equipment_setup_root,)),
