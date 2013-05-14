@@ -1,21 +1,22 @@
 import itertools
 
-from nose.tools import istest, assert_equals, assert_sequence_equal
+from nose.tools import istest, assert_equals, assert_sequence_equal, assert_true
 from ovation_neo.importer import import_file
 
 from neo.io import AxonIO
 
-from ovation import initVM, DateTime, NumericMeasurement
+from ovation import initVM, DateTime, NumericMeasurement, DateTime
 from ovation.numpy import asarray
 from ovation.testing import make_local_stack
-from ovation.maps import to_map
+from ovation.conversion import to_map
 
 class TestAxonImport(object):
     @classmethod
     def setup_class(cls):
-        print "initializing VM"
+        print("Initializing VM...")
         initVM()
 
+        print("Creating local database stack...")
         (cls.local_stack, cls.dsc) = make_local_stack()
 
         ctx = cls.dsc.getContext()
@@ -24,21 +25,28 @@ class TestAxonImport(object):
 
         exp = proj.insertExperiment('ABF experiment', DateTime())
         device_info = {"amplifier": {"mode": "I-clamp",
-                                     "channels": {1: {"gain": 2.5},
-                                                  2: {"gain": 3.5}}}}
+                                     "channels": {0: {"gain": 2.5},
+                                                  1: {"gain": 3.5}}}}
         
         exp.setEquipmentSetup(to_map(device_info))
 
         src = ctx.insertSource("recording source", "source-id")
 
         abf_file = 'fixtures/example1.abf'
-        cls.epoch_group = import_file(abf_file, exp, exp.getEquipmentSetup(), "amplifier", src)
+
+        print("Importing file...")
+        cls.epoch_group = import_file(abf_file,
+                                      exp,
+                                      exp.getEquipmentSetup(),
+                                      "amplifier",
+                                      src)
 
         reader = AxonIO(filename=abf_file)
         cls.block = reader.read()
 
     @classmethod
     def teardown_class(cls):
+        print("Removing local database stack...")
         cls.local_stack.cleanUp()
 
     def get_block_and_group(self):
@@ -66,7 +74,7 @@ class TestAxonImport(object):
     def should_import_analog_segments_as_measurements(self):
         block, epoch_group = self.get_block_and_group()
 
-        for segment, epoch in itertools.zip(block.segments, epoch_group.getEpochs()):
+        for segment, epoch in zip(block.segments, epoch_group.getEpochs()):
             yield check_measurements(segment, epoch)
 
     @istest
@@ -86,7 +94,7 @@ def check_numeric_measurement(signal, m):
 
 
 def check_measurements(segment, epoch):
-    assert_equals(len(segment.analogsignals), len(epoch.getMeasurements()))
+    assert_equals(len(segment.analogsignals), len(list(epoch.getMeasurements())))
 
     measurements = dict(((m.getName(), m) for m in epoch.getMeasurements()))
     for signal in segment.analogsignals:

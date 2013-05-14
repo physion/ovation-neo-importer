@@ -53,15 +53,38 @@ Notes
 -
 """
 
+import os.path
 import neo.io as nio
+import quantities as pq
+
+try:
+    from itertools import chain
+except ImportError:
+    # chain is builtin in Python3
+    pass
 
 
-def import_file(file_path, epoch_group_container, equipment_setup, equipment_setup_root, source):
+from ovation import *
+from ovation.conversion import to_map
+from ovation.numpy import as_numeric_data
+
+# Map from file extension to importer
+__IMPORTERS = {
+    '.plx' : nio.PlexonIO,
+    '.abf' : nio.AxonIO
+}
+
+def import_file(file_path,
+                epoch_group_container,
+                equipment_setup,
+                equipment_setup_root,
+                source,
+                group_label=None,
+                protocol=None):
     """Import a Neo IO readable file
 
     Parameters
     ----------
-
     file_path : str
         Path to file to import
     epoch_group_container : ovation.EpochGroup or ovation.Experiment
@@ -72,32 +95,43 @@ def import_file(file_path, epoch_group_container, equipment_setup, equipment_set
         Root path for equipment setup describing equipment that recorded the data to be imported
     source : ovation.Source
         Experimental `Subject` for data contained in file to be imported
-
+    group_label : string, optional
+    protocol : protocol
 
     Returns
     -------
-
     The inserted `ovation.EpochGroup`
 
     """
 
-    reader = nio.PlexonIO(filename=file_path)
+    ext = os.path.splitext(file_path)[-1]
+
+    reader = __IMPORTERS[ext](filename=file_path)
     block = reader.read()
 
-    return import_block(block,
-                        epoch_group_container,
+    return import_block(epoch_group_container,
+                        block,
                         equipment_setup,
                         equipment_setup_root,
-                        source)
+                        source,
+                        group_label=group_label,
+                        protocol=protocol)
 
 
-def import_block(epoch_group_container, block, equipment_setup, equipment_setup_root, source):
+def import_block(epoch_group_container,
+                 block,
+                 equipment_setup,
+                 equipment_setup_root,
+                 source,
+                 protocol=None,
+                 protocol_parameters={},
+                 device_parameters={},
+                 group_label=None):
     """Import a `Neo <http://neuralensemble.org/neo/>`_ `Block` as a single Ovation `EpochGroup`
 
 
     Parameters
     ----------
-
     block : neo.Block
         `neo.Block` to import
     epoch_group_container : ovation.EpochGroup or ovation.Experiment
@@ -108,13 +142,96 @@ def import_block(epoch_group_container, block, equipment_setup, equipment_setup_
         Root path for equipment setup describing equipment that recorded the data to be imported
     source : ovation.Source
         Experimental `Subject` for data contained in `block`
+    protocol : ovation.Protocol, optional
+        Ovation `Protocol` for the EpochGroup (if present)
+    protocol_parameters : Mapping, optional
+    device_parameters : Mapping, optional
+    group_label : string, optional
+        EpochGroup label. If `None`, and `block.name` is not `None`, `block.name` will be used
+        for the EpochGroup label.
 
 
     Returns
     -------
-
     The inserted `ovation.EpochGroup`
 
     """
 
-    return None
+    if group_label is None:
+        if not (block.name is None):
+            group_label = block.name
+        else:
+            group_label = "Neo importer"
+
+
+    merged_protocol_parameters = protocol_parameters.copy()
+    merged_protocol_parameters.update(block.annotations)
+
+    #Convert a datetime.datetime to a DateTime
+    start_time = DateTime(*(block.rec_datetime.timetuple()[:7]))
+
+    epochGroup = EpochGroupContainer.cast_(epoch_group_container).insertEpochGroup(group_label,
+                                                                                    start_time,
+                                                                                    protocol,
+                                                                                    to_map(merged_protocol_parameters),
+                                                                                    to_map(device_parameters)
+                                                                                )
+
+    print("Importing segments...")
+    for seg in block.segments:
+        print("\tImporting segment " + str(seg.index))
+        import_segment(epochGroup, seg, protocol=protocol, equipment_setup_root=equipment_setup_root)
+
+    return epochGroup
+
+NEO_PROTOCOL = "neo.io empty protocol"
+NEO_PROTOCOL_TEXT = """Data imported via neo.io with no additional protocol provided."""
+
+def import_segment(epoch_group,
+                   segment,
+                   protocol=None,
+                   equipment_setup_root=None):
+
+
+    ctx = epoch_group.getDataContext()
+    if protocol is None:
+        protocol = ctx.getProtocol(NEO_PROTOCOL)
+        if protocol is None:
+            protocol = ctx.insertProtocol(NEO_PROTOCOL, NEO_PROTOCOL_TEXT)
+
+    segment_duration = max(arr.t_stop for arr in segment.analogsignals)
+    segment_duration.units = 'ms' #milliseconds
+    start_time = DateTime(TimelineElement.cast_(epoch_group).getStart())
+    epoch = epoch_group.insertEpoch(start_time,
+                                    start_time.plusMillis(int(segment_duration)),
+                                    protocol,
+                                    to_map(segment.annotations),
+                                    to_map(segment.annotations)
+                                    )
+
+    for signal_array in segment.analogsignalarrays:
+        import_analog_signal_array(epoch, signal_array)
+
+    for analog_signal in segment.analogsignals:
+        import_analog_signal(epoch, analog_signal, equipment_setup_root)
+
+
+def import_analog_signal_array(epoch, signal_array, equipment_setup_root):
+    raise NotImplementedError()
+
+def import_analog_signal(epoch, analog_signal, equipment_setup_root):
+
+    ndata = as_numeric_data(analog_signal)
+
+    print(ndata)
+    print(ndata.getData())
+
+    m = epoch.insertNumericMeasurement(analog_signal.name,
+                                       Sets.newHashSet(),
+                                       Sets.newHashSet((equipment_setup_root,)),
+                                       ndata)
+
+
+
+
+

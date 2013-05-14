@@ -40,3 +40,5 @@ nosetests.xml
 # IDEA
 .idea/
 *.log
+
+*.gz
