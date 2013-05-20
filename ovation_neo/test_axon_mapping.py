@@ -8,7 +8,7 @@ from ovation_neo.importer import import_file
 from neo.io import AxonIO
 
 from ovation import DateTime
-from ovation.core import NumericMeasurement, DataElement
+from ovation.core import NumericMeasurementUtils, DataElement
 from ovation.testing import make_local_stack
 from ovation.conversion import to_map, asarray
 

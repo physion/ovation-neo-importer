@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 This module provides a mapping from the Neo core data model to Ovation's data model
 """
