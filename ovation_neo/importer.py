@@ -11,18 +11,18 @@ MAPPING
 Data Objects
 ------------
 
-AnalogSignal => Measurement
+√ AnalogSignal => Measurement
     Name?
-Spike => spike_times + spike_waveforms (see SpikeTrain)
-Event => TimelineAnnotation
-Epoch => TimelineAnnotation
+X Spike => spike_times + spike_waveforms (see SpikeTrain)
+X Event => TimelineAnnotation
+X Epoch => TimelineAnnotation
 
 
 Container Objects
 -----------------
 
-Segment => Epoch
-Block => EpochGroup
+√ Segment => Epoch
+√ Block => EpochGroup
 
 
 Grouping Objects
@@ -31,17 +31,17 @@ Grouping Objects
 RecordingChannel => DeviceInfo (level k+1) (+ Measurement reference)
 RecordingChannelGroup => DeviceInfo (level k)
 
-Unit => AnalysisRecord (derived measurement)
-SpikeTrain => AnalysisRecord (derived measurement) spike_times + spike_waveforms
+X Unit => AnalysisRecord (derived measurement)
+X SpikeTrain => AnalysisRecord (derived measurement) spike_times + spike_waveforms
 
-Unit => ? Source per Unit, as child of input Source (protocol?)
+X Unit => ? Source per Unit, as child of input Source (protocol?)
         ? AnalysisRecord (?)
 
 
 Annotations
 -----------
 
-Segment annotations => Protocol parameters
+√ Segment annotations => Protocol parameters
 
 
 
@@ -66,6 +66,7 @@ except ImportError:
 
 
 from ovation import *
+from ovation.core import *
 from ovation.conversion import to_map, as_numeric_data
 
 # Map from file extension to importer

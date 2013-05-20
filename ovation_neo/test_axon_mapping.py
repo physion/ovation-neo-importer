@@ -1,5 +1,5 @@
 import itertools
-
+import logging
 import numpy as np
 
 from nose.tools import istest, assert_equals, assert_sequence_equal, assert_true
@@ -7,17 +7,16 @@ from ovation_neo.importer import import_file
 
 from neo.io import AxonIO
 
-from ovation import initVM, DateTime, NumericMeasurement, DateTime, DataElement, us_physion_ovation_domain_impl_NumericMeasurement
+from ovation import DateTime
+from ovation.core import NumericMeasurement, DataElement
 from ovation.testing import make_local_stack
 from ovation.conversion import to_map, asarray
 
 class TestAxonImport(object):
     @classmethod
     def setup_class(cls):
-        print("Initializing VM...")
-        initVM()
 
-        print("Creating local database stack...")
+        logging.info("Creating local database stack...")
         (cls.local_stack, cls.dsc) = make_local_stack()
 
         ctx = cls.dsc.getContext()
@@ -35,7 +34,7 @@ class TestAxonImport(object):
 
         abf_file = 'fixtures/example1.abf'
 
-        print("Importing file...")
+        logging.info("Importing file...")
         cls.epoch_group = import_file(abf_file,
                                       exp,
                                       exp.getEquipmentSetup(),
@@ -47,7 +46,7 @@ class TestAxonImport(object):
 
     @classmethod
     def teardown_class(cls):
-        print("Removing local database stack...")
+        logging.info("Removing local database stack...")
         cls.local_stack.cleanUp()
 
     def get_block_and_group(self):
@@ -86,7 +85,7 @@ class TestAxonImport(object):
 
 
 def check_numeric_measurement(signal, m):
-    nd = us_physion_ovation_domain_impl_NumericMeasurement.numericDataFromFile(DataElement.cast_(m).getData().get())
+    nd = NumericMeasurementUtils.getNumericData(DataElement.cast_(m).getData()).get()
     data = asarray(nd.getData())
     assert_equals(signal.units, data.units)
     assert_sequence_equal(signal.shape, data.shape)
