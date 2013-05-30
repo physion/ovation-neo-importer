@@ -14,7 +14,6 @@ Data Objects
 ------------
 
 √ AnalogSignal => Measurement
-    Name?
 X Spike => spike_times + spike_waveforms (see SpikeTrain)
 X Event => TimelineAnnotation
 X Epoch => TimelineAnnotation
