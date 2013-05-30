@@ -223,7 +223,13 @@ def import_segment(epoch_group,
 
 
 def import_analog_signal_array(epoch, signal_array, equipment_setup_root):
-    raise NotImplementedError()
+    signal_array.labels = [u'time', u'channel']
+    signal_array.sampling_rates = [signal_array.sampling_rate] * signal_array.shape[1]
+    insert_numeric_measurement(epoch,
+                               set(),
+                               {equipment_setup_root},
+                               signal_array.name,
+                               { signal_array.name : signal_array })
 
 def import_analog_signal(epoch, analog_signal, equipment_setup_root):
     analog_signal.labels = [u'time']
