@@ -10,7 +10,8 @@ from neo.io import AxonIO
 from ovation import DateTime
 from ovation.core import NumericMeasurementUtils, DataElement
 from ovation.testing import make_local_stack
-from ovation.conversion import to_map, asarray
+from ovation.conversion import to_map, to_dict
+from ovation.data import as_data_frame
 
 class TestAxonImport(object):
     @classmethod
@@ -67,15 +68,15 @@ class TestAxonImport(object):
         for segment, epoch in zip(block.segments, epoch_group.getEpochs()):
             # Check protocol parameters
             for k, v in segment.annotations.iteritems():
-                yield assert_equals(v, epoch.getProtocolParameter(k))
+                assert_equals(v, epoch.getProtocolParameter(k))
 
 
     @istest
-    def should_import_analog_segments_as_measurements(self):
+    def test_should_import_analog_segments_as_measurements(self):
         block, epoch_group = self.get_block_and_group()
 
         for segment, epoch in zip(block.segments, epoch_group.getEpochs()):
-            yield check_measurements(segment, epoch)
+            check_measurements(segment, epoch)
 
     @istest
     def should_import_events(self):
@@ -85,12 +86,12 @@ class TestAxonImport(object):
 
 
 def check_numeric_measurement(signal, m):
-    nd = NumericMeasurementUtils.getNumericData(DataElement.cast_(m).getData()).get()
-    data = asarray(nd.getData())
-    assert_equals(signal.units, data.units)
-    assert_sequence_equal(signal.shape, data.shape)
-    assert_true(np.all(np.asarray(signal) == np.asarray(data)))
-    assert_equals(signal.sampling_rate, data.sampling_rate)
+    data_frame = as_data_frame(m)
+    for (name, data) in data_frame.iteritems():
+        assert_equals(signal.units, data.units)
+        assert_sequence_equal(signal.shape, data.shape)
+        assert_true(np.all(np.asarray(signal) == np.asarray(data)))
+        assert_equals(signal.sampling_rate, data.sampling_rates[0])
 
 
 def check_measurements(segment, epoch):
