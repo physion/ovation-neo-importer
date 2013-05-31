@@ -14,9 +14,9 @@ Data Objects
 ------------
 
 √ AnalogSignal => Measurement
-X Spike => spike_times + spike_waveforms (see SpikeTrain)
-X Event => TimelineAnnotation
-X Epoch => TimelineAnnotation
+- Spike => spike_times + spike_waveforms (see SpikeTrain)
+[ ] Event => TimelineAnnotation
+[ ] Epoch => TimelineAnnotation
 
 
 Container Objects
@@ -29,13 +29,14 @@ Container Objects
 Grouping Objects
 ----------------
 
+Not supported in current NIO instances, so we'll hold off on this for now...
 RecordingChannel => DeviceInfo (level k+1) (+ Measurement reference)
 RecordingChannelGroup => DeviceInfo (level k)
 
-X Unit => AnalysisRecord (derived measurement)
-X SpikeTrain => AnalysisRecord (derived measurement) spike_times + spike_waveforms
+[ ] Unit => AnalysisRecord (derived measurement)
+[ ] SpikeTrain => AnalysisRecord (derived measurement) spike_times + spike_waveforms
 
-X Unit => ? Source per Unit, as child of input Source (protocol?)
+[ ] Unit => ? Source per Unit, as child of input Source (protocol?)
         ? AnalysisRecord (?)
 
 
@@ -55,8 +56,8 @@ Notes
 """
 
 import os.path
+import neo
 import neo.io as nio
-import quantities as pq
 import logging
 
 try:
@@ -70,6 +71,7 @@ from ovation import *
 from ovation.core import *
 from ovation.conversion import to_map, to_java_set
 from ovation.data import insert_numeric_measurement
+from ovation.wrapper import property_annotatable
 
 # Map from file extension to importer
 __IMPORTERS = {
@@ -77,9 +79,9 @@ __IMPORTERS = {
     '.abf' : nio.AxonIO
 }
 
+
 def import_file(file_path,
                 epoch_group_container,
-                equipment_setup,
                 equipment_setup_root,
                 sources,
                 group_label=None,
@@ -114,7 +116,6 @@ def import_file(file_path,
 
     return import_block(epoch_group_container,
                         block,
-                        equipment_setup,
                         equipment_setup_root,
                         sources,
                         group_label=group_label,
@@ -123,7 +124,6 @@ def import_file(file_path,
 
 def import_block(epoch_group_container,
                  block,
-                 equipment_setup,
                  equipment_setup_root,
                  sources,
                  protocol=None,
@@ -180,10 +180,15 @@ def import_block(epoch_group_container,
                                                                                     to_map(device_parameters)
                                                                                 )
 
+    if len(block.recordingchannelgroups) > 0:
+        logging.warning("Block contains RecordingChannelGroups. Import of RecordingChannelGroups is currently not supported.")
+
     logging.info("Importing segments from {}".format(block.file_origin))
     for seg in block.segments:
         logging.info("Importing segment {} from {}".format(str(seg.index), block.file_origin))
-        import_segment(epochGroup, seg, sources, protocol=protocol, equipment_setup_root=equipment_setup_root)
+        import_segment(epochGroup, seg, sources,
+                       protocol=protocol,
+                       equipment_setup_root=equipment_setup_root)
 
     return epochGroup
 
@@ -213,16 +218,20 @@ def import_segment(epoch_group,
     for s in sources:
         inputSources.put(s.getLabel(), s)
 
+    device_parameters = dict(("{}.{}".format(equipment_setup_root, k), v) for (k,v) in segment.annotations.items())
     epoch = EpochContainer.cast_(epoch_group).insertEpoch(inputSources,
                                                           outputSources,
                                                           start_time,
                                                           start_time.plusMillis(int(segment_duration)),
                                                           protocol,
                                                           to_map(segment.annotations),
-                                                          to_map(segment.annotations)
+                                                          to_map(device_parameters)
                                                           )
-    for signal_array in segment.analogsignalarrays:
-        import_analog_signal_array(epoch, signal_array)
+    property_annotatable(epoch).addProperty('index', segment.index)
+
+    if len(segment.analogsignalarrays) > 0:
+        logging.warning("Segment contains AnalogSignalArrays. Import of AnalogSignalArrays is currently not supported")
+
 
     for analog_signal in segment.analogsignals:
         import_analog_signal(epoch, analog_signal, equipment_setup_root)
@@ -239,15 +248,16 @@ def import_analog_signal_array(epoch, signal_array, equipment_setup_root):
                                signal_array.name,
                                { signal_array.name : signal_array })
 
+
 def import_analog_signal(epoch, analog_signal, equipment_setup_root):
-    #TODO, should use channel, etc. for equipment setup
+
     analog_signal.labels = [u'time']
     analog_signal.sampling_rates = [analog_signal.sampling_rate]
     insert_numeric_measurement(epoch,
                                set(),
-                               {equipment_setup_root},
+                               {"{}.channels.{}".format(equipment_setup_root, analog_signal.annotations['channel_index'])},
                                analog_signal.name,
-                               { analog_signal.name : analog_signal })
+                               { analog_signal.name : analog_signal})
 
 
 

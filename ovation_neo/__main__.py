@@ -25,7 +25,6 @@ def main(argv=sys.argv, dsc=None):
         for file in files:
             import_file(file,
                         experiment,
-                        experiment.getEquipmentSetup(),
                         equipment_setup_root,
                         sources,
                         protocol=protocol)
