@@ -81,7 +81,7 @@ def import_file(file_path,
                 epoch_group_container,
                 equipment_setup,
                 equipment_setup_root,
-                source,
+                sources,
                 group_label=None,
                 protocol=None):
     """Import a Neo IO readable file
@@ -96,8 +96,8 @@ def import_file(file_path,
         Experiment `EquipmentSetup` for the data contained in the file to be imported
     equipment_setup_root : str
         Root path for equipment setup describing equipment that recorded the data to be imported
-    source : ovation.Source
-        Experimental `Subject` for data contained in file to be imported
+    sources : iterable of us.physion.ovation.domain.Source
+        Experimental `Subjects` for data contained in file to be imported
     group_label : string, optional
     protocol : protocol
 
@@ -116,7 +116,7 @@ def import_file(file_path,
                         block,
                         equipment_setup,
                         equipment_setup_root,
-                        source,
+                        sources,
                         group_label=group_label,
                         protocol=protocol)
 
@@ -125,7 +125,7 @@ def import_block(epoch_group_container,
                  block,
                  equipment_setup,
                  equipment_setup_root,
-                 source,
+                 sources,
                  protocol=None,
                  protocol_parameters={},
                  device_parameters={},
@@ -143,8 +143,8 @@ def import_block(epoch_group_container,
         Experiment `EquipmentSetup` for the data contained in the file to be imported
     equipment_setup_root : str
         Root path for equipment setup describing equipment that recorded the data to be imported
-    source : ovation.Source
-        Experimental `Subject` for data contained in `block`
+    source : iterable of us.physion.ovation.domain.Source
+        Experimental `Subjects` for data contained in `block`
     protocol : ovation.Protocol, optional
         Ovation `Protocol` for the EpochGroup (if present)
     protocol_parameters : Mapping, optional
@@ -183,7 +183,7 @@ def import_block(epoch_group_container,
     logging.info("Importing segments from {}".format(block.file_origin))
     for seg in block.segments:
         logging.info("Importing segment {} from {}".format(str(seg.index), block.file_origin))
-        import_segment(epochGroup, seg, source, protocol=protocol, equipment_setup_root=equipment_setup_root)
+        import_segment(epochGroup, seg, sources, protocol=protocol, equipment_setup_root=equipment_setup_root)
 
     return epochGroup
 
@@ -192,7 +192,7 @@ NEO_PROTOCOL_TEXT = """Data imported via neo.io with no additional protocol prov
 
 def import_segment(epoch_group,
                    segment,
-                   source,
+                   sources,
                    protocol=None,
                    equipment_setup_root=None):
 
@@ -207,13 +207,20 @@ def import_segment(epoch_group,
     segment_duration.units = 'ms' #milliseconds
     start_time = DateTime(TimelineElement.cast_(epoch_group).getStart())
 
-    epoch = EpochContainer.cast_(epoch_group).insertEpoch(start_time,
+    inputSources = Maps.newHashMap()
+    outputSources = Maps.newHashMap()
+
+    for s in sources:
+        inputSources.put(s.getLabel(), s)
+
+    epoch = EpochContainer.cast_(epoch_group).insertEpoch(inputSources,
+                                                          outputSources,
+                                                          start_time,
                                                           start_time.plusMillis(int(segment_duration)),
                                                           protocol,
                                                           to_map(segment.annotations),
                                                           to_map(segment.annotations)
                                                           )
-
     for signal_array in segment.analogsignalarrays:
         import_analog_signal_array(epoch, signal_array)
 
@@ -224,6 +231,8 @@ def import_segment(epoch_group,
 def import_analog_signal_array(epoch, signal_array, equipment_setup_root):
     signal_array.labels = [u'time', u'channel']
     signal_array.sampling_rates = [signal_array.sampling_rate] * signal_array.shape[1]
+
+    #TODO should use channel, etc. for equipment setup
     insert_numeric_measurement(epoch,
                                set(),
                                {equipment_setup_root},
@@ -231,6 +240,7 @@ def import_analog_signal_array(epoch, signal_array, equipment_setup_root):
                                { signal_array.name : signal_array })
 
 def import_analog_signal(epoch, analog_signal, equipment_setup_root):
+    #TODO, should use channel, etc. for equipment setup
     analog_signal.labels = [u'time']
     analog_signal.sampling_rates = [analog_signal.sampling_rate]
     insert_numeric_measurement(epoch,
