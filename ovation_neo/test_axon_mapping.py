@@ -53,6 +53,12 @@ class TestAxonImport(TestBase):
         self.epoch_group = self.__class__.epoch_group
         self.ctx = self.get_dsc().getContext()
 
+
+    def get_dsc(self):
+        """Overridden to make sure we get an authenticated DSC"""
+
+        return self.__class__.local_stack.getAuthenticatedDataStoreCoordinator()
+
     @istest
     def should_import_one_epoch_per_block(self):
         assert_equals(len(self.block.segments), len(set(self.epoch_group.getEpochs())), "should import one epoch per segment")
@@ -79,9 +85,6 @@ class TestAxonImport(TestBase):
     def should_import_events(self):
         assert_true(False, "Not implemented")
 
-    def get_dsc(self):
-        return self.__class__.local_stack.getAuthenticatedDataStoreCoordinator()
-
     @istest
     def should_call_via_main(self):
         expt2 = self.ctx.insertProject("project2","project2",DateTime()).insertExperiment("purpose", DateTime())
@@ -98,6 +101,11 @@ class TestAxonImport(TestBase):
 
         epoch_group = list(EpochGroupContainer.cast_(expt2).getEpochGroups())[0]
         assert_equals(len(self.block.segments), len(set(epoch_group.getEpochs())), "should import one epoch per segment")
+
+    @istest
+    def should_set_device_parameters(self):
+            assert_true(False, "Not implemented")
+
 
 
 
