@@ -8,7 +8,7 @@ from ovation_neo.importer import import_file
 from neo.io import AxonIO
 
 from ovation import DateTime
-from ovation.core import NumericMeasurementUtils, DataElement
+from ovation.core import *
 from ovation.testing import TestBase
 from ovation.conversion import to_map
 from ovation.data import as_data_frame
@@ -51,7 +51,7 @@ class TestAxonImport(TestBase):
         self.src = self.__class__.src
         self.block = self.__class__.block
         self.epoch_group = self.__class__.epoch_group
-        self.ctx = self.__class__.dsc.getContext()
+        self.ctx = self.get_dsc().getContext()
 
     @istest
     def should_import_one_epoch_per_block(self):
@@ -78,6 +78,9 @@ class TestAxonImport(TestBase):
     @istest
     def should_import_events(self):
         assert_true(False, "Not implemented")
+
+    def get_dsc(self):
+        return self.__class__.local_stack.getAuthenticatedDataStoreCoordinator()
 
     @istest
     def should_call_via_main(self):
