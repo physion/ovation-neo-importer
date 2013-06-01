@@ -51,7 +51,7 @@ Notes
 -----
 
 - Empty protocols, unless defined
-- DeviceInfo names must be .channels.{i} for individual channels or .arrays.{i}.channels{j} for AnalogSignalArrays from provided root
+- DeviceInfo names must be .channels.{i} for individual analog signals from provided root
 -
 """
 
