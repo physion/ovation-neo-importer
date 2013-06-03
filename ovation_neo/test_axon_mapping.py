@@ -121,11 +121,11 @@ class TestAxonImport(TestBase):
 
     @istest
     def should_import_events(self):
-        assert_true(False, "Not implemented")
+        assert_true(False, "No fixure")
 
     @istest
     def should_import_epochs(self):
-        assert_true(False, "Not implemented")
+        assert_true(False, "No fixture")
 
 
     @istest

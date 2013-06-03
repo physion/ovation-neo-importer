@@ -43,6 +43,16 @@ You can get more information about the available arguments by running:
 
 To find the `Experiment` and `Protocol` IDs, you can copy-and-paste the relevant object(s) from the Ovation application or call the `getUuid()` method on either object within Python.
 
+## Supported Neo.io features
+
+The physiology data importer current supports a subset of the Neo data model, limited to the supported objects of the neo.io
+importers used. Currently supported blocks include `neo.core.block.Block`, `neo.core.segment.Segment`, `neo.core.analogsignal.AnalogSignal`,
+`neo.core.eventarray.EventArray` and `neo.core.epocharray.EpochArray`.
+
+ The importer has full test coverage with the exception of `Epoch` and `EpochArray` import. If you have example Neo.io-readable
+ data files that contain `Epoch` or `EpochArray` data _and_ you would be willing to share an example file, please let us know.
+
+
 ## License
 
 The Ovation Neo IO importer is Copyright (c) 2013 Physion Consulting LLC and is licensed under the [GPL v3.0 license](http://www.gnu.org/licenses/gpl.html "GPLv3") license.

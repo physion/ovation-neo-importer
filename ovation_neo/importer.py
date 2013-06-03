@@ -56,7 +56,7 @@ Notes
 """
 
 import os.path
-import neo
+import quantities as pq
 import neo.io as nio
 import logging
 
@@ -235,6 +235,65 @@ def import_segment(epoch_group,
 
     for analog_signal in segment.analogsignals:
         import_analog_signal(epoch, analog_signal, equipment_setup_root)
+
+    for event in segment.events:
+        event_time = event.time
+        event_time.units = pq.ms
+        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
+                                                               event.description,
+                                                               start_time.plusMillis(event_time.item()))
+
+    for event_array in segment.eventarrays:
+        for (event_time, label) in zip(event_array.times, event_array.labels):
+            if event_array.name:
+                name = "{} - {}".format(event_array.name, label)
+            else:
+                name = label
+
+            event_time.units = pq.ms
+            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(name,
+                                                                   event_array.description,
+                                                                   start_time.plusMillis(event_time.item()))
+
+
+    for epoch in segment.epochs:
+        event_time = epoch.time
+        event_time.units = pq.ms
+        duration = epoch.duration
+        duration.units = pq.ms
+
+        epoch_start = start_time.plusMillis(event_time.item())
+        epoch_end = epoch_start.plusMillis(duration.item())
+        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
+                                                               event.description,
+                                                               epoch_start,
+                                                               epoch_end)
+
+    for epoch_array in segment.epocharrays:
+        for (event_time, duration, label) in zip(epoch_array.times, epoch_array.durations, epoch_array.labels):
+            if epoch_array.name:
+                name = "{} - {}".format(epoch_array.name, label)
+            else:
+                name = label
+
+            event_time.units = pq.ms
+            duration.units = pq.ms
+            epoch_start = start_time.plusMillis(event_time.item())
+            epoch_end = epoch_start.plusMillis(duration.item())
+
+            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
+                                                                   event.description,
+                                                                   epoch_start,
+                                                                   epoch_end)
+
+
+    if len(segment.spikes) > 0:
+        logging.warning("Segment contains Spikes. Import of Spike data is not yet implemented.")
+
+    if len(segment.spiketrains) > 0:
+        logging.warning("Segment contains spike trains. Import of spike train data is not yet implemented.")
+
+
 
 
 def import_analog_signal_array(epoch, signal_array, equipment_setup_root):
