@@ -92,7 +92,8 @@ class TestAxonImport(TestBase):
         expt2 = self.ctx.insertProject("project2","project2",DateTime()).insertExperiment("purpose", DateTime())
         protocol2 = self.ctx.insertProtocol("protocol", "description")
 
-        args = ['--source={}'.format(str(self.src.getUuid())),
+        args = ['prog_name',
+                '--source={}'.format(str(self.src.getUuid())),
                 '--timezone=America/New_York',
                 '--container={}'.format(str(expt2.getUuid())),
                 '--protocol={}'.format(str(protocol2.getUuid())),
