@@ -195,6 +195,55 @@ def import_block(epoch_group_container,
 NEO_PROTOCOL = "neo.io empty protocol"
 NEO_PROTOCOL_TEXT = """Data imported via neo.io with no additional protocol provided."""
 
+
+def import_timeline_annotations(epoch, segment, start_time):
+    for event in segment.events:
+        event_time = event.time
+        event_time.units = pq.ms
+        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
+                                                               event.description,
+                                                               start_time.plusMillis(event_time.item()))
+    for event_array in segment.eventarrays:
+        for (event_time, label) in zip(event_array.times, event_array.labels):
+            if event_array.name:
+                name = "{} - {}".format(event_array.name, label)
+            else:
+                name = label
+
+            event_time.units = pq.ms
+            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(name,
+                                                                   event_array.description,
+                                                                   start_time.plusMillis(event_time.item()))
+    for epoch in segment.epochs:
+        event_time = epoch.time
+        event_time.units = pq.ms
+        duration = epoch.duration
+        duration.units = pq.ms
+
+        epoch_start = start_time.plusMillis(event_time.item())
+        epoch_end = epoch_start.plusMillis(duration.item())
+        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
+                                                               event.description,
+                                                               epoch_start,
+                                                               epoch_end)
+    for epoch_array in segment.epocharrays:
+        for (event_time, duration, label) in zip(epoch_array.times, epoch_array.durations, epoch_array.labels):
+            if epoch_array.name:
+                name = "{} - {}".format(epoch_array.name, label)
+            else:
+                name = label
+
+            event_time.units = pq.ms
+            duration.units = pq.ms
+            epoch_start = start_time.plusMillis(event_time.item())
+            epoch_end = epoch_start.plusMillis(duration.item())
+
+            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
+                                                                   event.description,
+                                                                   epoch_start,
+                                                                   epoch_end)
+
+
 def import_segment(epoch_group,
                    segment,
                    sources,
@@ -236,62 +285,33 @@ def import_segment(epoch_group,
     for analog_signal in segment.analogsignals:
         import_analog_signal(epoch, analog_signal, equipment_setup_root)
 
-    for event in segment.events:
-        event_time = event.time
-        event_time.units = pq.ms
-        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
-                                                               event.description,
-                                                               start_time.plusMillis(event_time.item()))
-
-    for event_array in segment.eventarrays:
-        for (event_time, label) in zip(event_array.times, event_array.labels):
-            if event_array.name:
-                name = "{} - {}".format(event_array.name, label)
-            else:
-                name = label
-
-            event_time.units = pq.ms
-            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(name,
-                                                                   event_array.description,
-                                                                   start_time.plusMillis(event_time.item()))
-
-
-    for epoch in segment.epochs:
-        event_time = epoch.time
-        event_time.units = pq.ms
-        duration = epoch.duration
-        duration.units = pq.ms
-
-        epoch_start = start_time.plusMillis(event_time.item())
-        epoch_end = epoch_start.plusMillis(duration.item())
-        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
-                                                               event.description,
-                                                               epoch_start,
-                                                               epoch_end)
-
-    for epoch_array in segment.epocharrays:
-        for (event_time, duration, label) in zip(epoch_array.times, epoch_array.durations, epoch_array.labels):
-            if epoch_array.name:
-                name = "{} - {}".format(epoch_array.name, label)
-            else:
-                name = label
-
-            event_time.units = pq.ms
-            duration.units = pq.ms
-            epoch_start = start_time.plusMillis(event_time.item())
-            epoch_end = epoch_start.plusMillis(duration.item())
-
-            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
-                                                                   event.description,
-                                                                   epoch_start,
-                                                                   epoch_end)
-
+    import_timeline_annotations(epoch, segment, start_time)
 
     if len(segment.spikes) > 0:
         logging.warning("Segment contains Spikes. Import of Spike data is not yet implemented.")
 
     if len(segment.spiketrains) > 0:
-        logging.warning("Segment contains spike trains. Import of spike train data is not yet implemented.")
+                logging.warning("Segment contains spike trains. Import of spike train data is not tested. "
+                                "Please consider sharing an example data file with the ovation-neo-importer project")
+
+    for spike_train in segment.spiketrains:
+        params = {'t_start_ms' : spike_train.t_start.rescale(pq.ms).item(),
+                   't_stop_ms' : spike_train.t_stop.rescale(pq.ms).item(),
+                   'sampling_rate_hz' : spike_train.sampling_rate.rescale(pq.Hz).item(),
+                   'description' : spike_train.description,
+                   'file_origin' : spike_train.file_origin}
+
+        ar = epoch.insertAnalysisRecord(spike_train.name,
+                                   Maps.newHashMap(),   #inputs?
+                                   protocol,            #protocol?
+                                   Maps.newHashMap()    #parameters?
+                                   )
+
+        insert_numeric_analysis_artifact(ar,
+                                         spike_train.name,
+                                         {'spike_time_s' : spike_train.times,
+                                         'spike_waveforms' : spike_train.waveforms})
+
 
 
 

@@ -112,7 +112,7 @@ class TestAxonImport(TestBase):
     @istest
     def should_set_device_for_analog_signals(self):
         for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
-            measurements = dict(((m.getName(), m) for m in epoch.getMeasurements()))
+            measurements = dict(((DataElement.cast_(m).getName(), m) for m in epoch.getMeasurements()))
 
             for signal in segment.analogsignals:
                 m = measurements[signal.name]
@@ -153,7 +153,7 @@ def check_numeric_measurement(signal, m):
 def check_measurements(segment, epoch):
     assert_equals(len(segment.analogsignals), len(list(epoch.getMeasurements())))
 
-    measurements = dict(((m.getName(), m) for m in epoch.getMeasurements()))
+    measurements = dict(((DataElement.cast_(m).getName(), m) for m in epoch.getMeasurements()))
 
     for signal in segment.analogsignals:
         m = measurements[signal.name]
