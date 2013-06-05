@@ -76,7 +76,7 @@ class TestAxonImport(TestBase):
     def should_store_segment_index(self):
         for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
             assert_equals(segment.index,
-                          Integer.cast_((property_annotatable(epoch).getUserProperty(self.ctx.getAuthenticatedUser(), 'index'))).intValue())
+                          Integer.cast_((property_annotatable(epoch).getUserProperty(epoch.getDataContext().getAuthenticatedUser(), 'index'))).intValue())
 
     @istest
     def test_should_import_analog_segments_as_measurements(self):
