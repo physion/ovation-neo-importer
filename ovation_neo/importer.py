@@ -200,9 +200,13 @@ def import_timeline_annotations(epoch, segment, start_time):
     for event in segment.events:
         event_time = event.time
         event_time.units = pq.ms
+        if event.description:
+                description = event.description
+        else:
+            description = ""
         TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
-                                                               event.description,
-                                                               start_time.plusMillis(event_time.item()))
+                                                               description,
+                                                               start_time.plusMillis(int(event_time.item())))
     for event_array in segment.eventarrays:
         for (event_time, label) in zip(event_array.times, event_array.labels):
             if event_array.name:
@@ -211,19 +215,30 @@ def import_timeline_annotations(epoch, segment, start_time):
                 name = label
 
             event_time.units = pq.ms
+            if event_array.description:
+                description = event_array.description
+            else:
+                description = ""
+
             TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(name,
-                                                                   event_array.description,
-                                                                   start_time.plusMillis(event_time.item()))
-    for epoch in segment.epochs:
-        event_time = epoch.time
+                                                                   description,
+                                                                   start_time.plusMillis(int(event_time.item())))
+    for neoepoch in segment.epochs:
+        event_time = neoepoch.time
         event_time.units = pq.ms
-        duration = epoch.duration
+        duration = neoepoch.duration
         duration.units = pq.ms
 
-        epoch_start = start_time.plusMillis(event_time.item())
-        epoch_end = epoch_start.plusMillis(duration.item())
-        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
-                                                               event.description,
+        epoch_start = start_time.plusMillis(int(event_time.item()))
+        epoch_end = epoch_start.plusMillis(int(duration.item()))
+        if neoepoch.description:
+            description = neoepoch.description
+        else:
+            description = ""
+
+
+        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(neoepoch.label,
+                                                               description,
                                                                epoch_start,
                                                                epoch_end)
     for epoch_array in segment.epocharrays:
@@ -235,8 +250,8 @@ def import_timeline_annotations(epoch, segment, start_time):
 
             event_time.units = pq.ms
             duration.units = pq.ms
-            epoch_start = start_time.plusMillis(event_time.item())
-            epoch_end = epoch_start.plusMillis(duration.item())
+            epoch_start = start_time.plusMillis(int(event_time.item()))
+            epoch_end = epoch_start.plusMillis(int(duration.item()))
 
             TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
                                                                    event.description,
