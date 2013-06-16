@@ -44,3 +44,5 @@ nosetests.xml
 *.gz
 
 import_ready.ipynb
+
+.ropeproject
