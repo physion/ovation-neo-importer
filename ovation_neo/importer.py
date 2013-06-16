@@ -3,6 +3,7 @@
 This module provides a mapping from the Neo core data model to Ovation's data model
 """
 from xmlrpclib import DateTime
+import sys
 
 __copyright__ = 'Copyright (c) 2013. Physion Consulting. All rights reserved.'
 
@@ -59,6 +60,7 @@ import os.path
 import quantities as pq
 import neo.io as nio
 import logging
+from datetime import datetime
 
 try:
     from itertools import chain
@@ -70,7 +72,7 @@ except ImportError:
 from ovation import *
 from ovation.core import *
 from ovation.conversion import to_map, to_java_set
-from ovation.data import insert_numeric_measurement
+from ovation.data import insert_numeric_measurement, insert_numeric_analysis_artifact
 from ovation.wrapper import property_annotatable
 
 # Map from file extension to importer
@@ -78,6 +80,22 @@ __IMPORTERS = {
     '.plx' : nio.PlexonIO,
     '.abf' : nio.AxonIO
 }
+
+
+def log_info(msg):
+    logging.info(msg)
+    sys.stderr.write("{}\n".format(msg))
+    sys.stderr.flush()
+
+def log_warning(msg):
+    logging.warning(msg)
+    sys.stderr.write("Warning: {}\n".format(msg))
+    sys.stderr.flush()
+
+def log_error(msg):
+    logging.error(msg)
+    sys.stderr.write("Error: {}\n".format(msg))
+    sys.stderr.flush()
 
 
 def import_file(file_path,
@@ -118,8 +136,9 @@ def import_file(file_path,
                         block,
                         equipment_setup_root,
                         sources,
+                        protocol=protocol,
                         group_label=group_label,
-                        protocol=protocol)
+                        file_mtime=os.path.getmtime(file_path))
 
 
 def import_block(epoch_group_container,
@@ -129,7 +148,8 @@ def import_block(epoch_group_container,
                  protocol=None,
                  protocol_parameters={},
                  device_parameters={},
-                 group_label=None):
+                 group_label=None,
+                 file_mtime=None):
     """Import a `Neo <http://neuralensemble.org/neo/>`_ `Block` as a single Ovation `EpochGroup`
 
 
@@ -171,7 +191,11 @@ def import_block(epoch_group_container,
     merged_protocol_parameters.update(block.annotations)
 
     #Convert a datetime.datetime to a DateTime
-    start_time = DateTime(*(block.rec_datetime.timetuple()[:7]))
+    if block.rec_datetime is not None:
+        start_time = DateTime(*(block.rec_datetime.timetuple()[:7]))
+    else:
+        log_warning("Block does not contain a recording date/time. Using file modification time instead.")
+        start_time = DateTime(*(datetime.fromtimestamp(file_mtime).timetuple()[:7]))
 
     epochGroup = EpochGroupContainer.cast_(epoch_group_container).insertEpochGroup(group_label,
                                                                                     start_time,
@@ -181,11 +205,11 @@ def import_block(epoch_group_container,
                                                                                 )
 
     if len(block.recordingchannelgroups) > 0:
-        logging.warning("Block contains RecordingChannelGroups. Import of RecordingChannelGroups is currently not supported.")
+        log_warning("Block contains RecordingChannelGroups. Import of RecordingChannelGroups is currently not supported.")
 
-    logging.info("Importing segments from {}".format(block.file_origin))
+    log_info("Importing segments from {}".format(block.file_origin))
     for seg in block.segments:
-        logging.info("Importing segment {} from {}".format(str(seg.index), block.file_origin))
+        log_info("Importing segment {} from {}".format(str(seg.index), block.file_origin))
         import_segment(epochGroup, seg, sources,
                        protocol=protocol,
                        equipment_setup_root=equipment_setup_root)
@@ -291,10 +315,11 @@ def import_segment(epoch_group,
                                                           to_map(segment.annotations),
                                                           to_map(device_parameters)
                                                           )
-    property_annotatable(epoch).addProperty('index', segment.index)
+    if segment.index is not None:
+        property_annotatable(epoch).addProperty('index', segment.index)
 
     if len(segment.analogsignalarrays) > 0:
-        logging.warning("Segment contains AnalogSignalArrays. Import of AnalogSignalArrays is currently not supported")
+        log_warning("Segment contains AnalogSignalArrays. Import of AnalogSignalArrays is currently not supported")
 
 
     for analog_signal in segment.analogsignals:
@@ -303,10 +328,10 @@ def import_segment(epoch_group,
     import_timeline_annotations(epoch, segment, start_time)
 
     if len(segment.spikes) > 0:
-        logging.warning("Segment contains Spikes. Import of Spike data is not yet implemented.")
+        log_warning("Segment contains Spikes. Import of Spike data is not yet implemented.")
 
     if len(segment.spiketrains) > 0:
-                logging.warning("Segment contains spike trains. Import of spike train data is not tested. "
+                log_warning("Segment contains spike trains. Import of spike train data is not tested. "
                                 "Please consider sharing an example data file with the ovation-neo-importer project")
 
     for spike_train in segment.spiketrains:
@@ -319,7 +344,7 @@ def import_segment(epoch_group,
         ar = epoch.insertAnalysisRecord(spike_train.name,
                                    Maps.newHashMap(),   #inputs?
                                    protocol,            #protocol?
-                                   Maps.newHashMap()    #parameters?
+                                   to_map(params)
                                    )
 
         insert_numeric_analysis_artifact(ar,
@@ -347,11 +372,25 @@ def import_analog_signal(epoch, analog_signal, equipment_setup_root):
 
     analog_signal.labels = [u'time']
     analog_signal.sampling_rates = [analog_signal.sampling_rate]
+    if 'channel_index' in analog_signal.annotations:
+        channel_index = analog_signal.annotations['channel_index']
+    else:
+        channel_index = 'unknown'
+        log_warning("Analog signal does not have a channel index. Using '{}.channels.{}' as measurement device.".format(equipment_setup_root, channel_index))
+
+
+    if analog_signal.name is not None:
+        name = analog_signal.name
+    else:
+        name = 'analog signal'
+        log_warning("Analog signal does not have a name. Using '{}' as measurement and data name.".format(name))
+
+
     insert_numeric_measurement(epoch,
                                set(),
-                               {"{}.channels.{}".format(equipment_setup_root, analog_signal.annotations['channel_index'])},
-                               analog_signal.name,
-                               { analog_signal.name : analog_signal})
+                               {channel_index},
+                               name,
+                               {name : analog_signal})
 
 
 

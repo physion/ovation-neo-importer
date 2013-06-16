@@ -231,6 +231,14 @@ class TestAxonImport(TestBase):
     def should_import_units(self):
         assert_true(False, "Not implemented")
 
+    @istest
+    def should_import_recording_channels(self):
+        assert_true(False, "Not implmented")
+
+    @istest
+    def should_import_recording_channel_groups(self):
+        assert_true(False, "Not implemented")
+
 
 
 
