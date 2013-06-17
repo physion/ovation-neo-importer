@@ -1,23 +1,20 @@
-import itertools
 import logging
-from neo import Event, EventArray, Epoch
+
+from neo import Event, EventArray, SpikeTrain
 import numpy as np
 import quantities as pq
-
 from nose.tools import istest, assert_equals, assert_sequence_equal, assert_true
 from ovation.wrapper import property_annotatable
-from ovation_neo.importer import import_file, import_timeline_annotations
-
 import neo.core.epoch
 from neo.io import AxonIO
-
 from ovation import DateTime, Integer, Maps
-from ovation.core import *
 from ovation.testing import TestBase
 from ovation.conversion import to_map, to_dict
 from ovation.data import as_data_frame
 
+from ovation_neo.importer import import_file, import_timeline_annotations, import_spiketrains
 from ovation_neo.__main__ import main
+
 
 class TestAxonImport(TestBase):
     @classmethod
@@ -223,34 +220,78 @@ class TestAxonImport(TestBase):
         finally:
             segment.epochs.remove(neoepoch)
 
+
+
     @istest
     def should_import_spike_trains(self):
-        assert_true(False, "Not implemented")
+        expt2 = self.ctx.insertProject("project2","project2",DateTime()).insertExperiment("purpose", DateTime())
+        protocol2 = self.ctx.insertProtocol("protocol", "description")
+        epoch_start = DateTime()
 
-    @istest
-    def should_import_units(self):
-        assert_true(False, "Not implemented")
+        epoch = expt2.insertEpoch(Maps.newHashMap(),
+                                  Maps.newHashMap(),
+                                  epoch_start,
+                                  DateTime(),
+                                  protocol2,
+                                  to_map({}),
+                                  to_map({}))
 
-    @istest
-    def should_import_recording_channels(self):
-        assert_true(False, "Not implmented")
+        segment = self.block.segments[0]
 
-    @istest
-    def should_import_recording_channel_groups(self):
-        assert_true(False, "Not implemented")
+        times = [.1, .2, .3, .4]
+        waveforms = np.random.rand(2,3,4) * pq.mV
+
+        train_name = 'spike train 1'
+        spike_train = SpikeTrain(times, name=train_name, t_stop=2.0 * pq.s, units="s", waveforms=waveforms)
+
+        segment.spiketrains.append(spike_train)
+        try:
+            import_spiketrains(epoch, protocol2, segment)
+
+            records = list(epoch.getAnalysisRecords())
+
+            assert_equals(1, len(records))
+
+            ar = records[0]
+
+            assert_equals(train_name, ar.getName())
+
+            expected_params = {'t_start_ms': spike_train.t_start.rescale(pq.ms).item(),
+                  't_stop_ms': spike_train.t_stop.rescale(pq.ms).item(),
+                  'sampling_rate_hz': spike_train.sampling_rate.rescale(pq.Hz).item(),
+                  'description': spike_train.description,
+                  'file_origin': spike_train.file_origin}
+
+            for (k,v) in expected_params.iteritems():
+                actual = ar.getProtocolParameters().get(k)
+                if actual:
+                    assert(actual.equals(v), "k = v".format(k, v))
+
+            assert_equals(len(expected_params), ar.getProtocolParameters().size())
+
+            data_map = DataElementContainer.cast_(ar).getDataElements()
+            df = as_data_frame(data_map.get(spike_train.name))
+
+            check_signal(spike_train, df['spike times'])
+            check_signal(spike_train.waveforms, df['spike waveforms'])
+        finally:
+            segment.spiketrains.remove(spike_train)
 
 
-
-
+def check_signal(data, signal):
+    assert_equals(signal.units, data.units)
+    assert_sequence_equal(signal.shape, data.shape)
+    assert_true(np.all(np.asarray(signal) == np.asarray(data)))
+    try:
+        assert_equals(signal.sampling_rate, data.sampling_rates[0])
+    except AttributeError:
+        pass
 
 
 def check_numeric_measurement(signal, m):
     data_frame = as_data_frame(m)
     for (name, data) in data_frame.iteritems():
-        assert_equals(signal.units, data.units)
-        assert_sequence_equal(signal.shape, data.shape)
-        assert_true(np.all(np.asarray(signal) == np.asarray(data)))
-        assert_equals(signal.sampling_rate, data.sampling_rates[0])
+        check_signal(data, signal)
 
 
 def check_measurements(segment, epoch):
