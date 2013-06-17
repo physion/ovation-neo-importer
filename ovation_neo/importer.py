@@ -68,9 +68,8 @@ except ImportError:
 
 
 from ovation import *
-from ovation.core import *
-from ovation.conversion import to_map, to_java_set
-from ovation.data import insert_numeric_measurement
+from ovation.conversion import to_map
+from ovation.data import insert_numeric_measurement, insert_numeric_analysis_artifact
 from ovation.wrapper import property_annotatable
 
 # Map from file extension to importer
@@ -190,6 +189,11 @@ def import_block(epoch_group_container,
                        protocol=protocol,
                        equipment_setup_root=equipment_setup_root)
 
+    logging.info("Waiting for uploads to complete...")
+    fs = epoch_group_container.getDataContext().getFileService()
+    while(fs.hasPendingUploads()):
+        fs.waitForPendingUploads(10, TimeUnit.SECONDS)
+
     return epochGroup
 
 NEO_PROTOCOL = "neo.io empty protocol"
@@ -259,6 +263,42 @@ def import_timeline_annotations(epoch, segment, start_time):
                                                                    epoch_end)
 
 
+def import_spiketrains(epoch, protocol, segment):
+    for (i, spike_train) in enumerate(segment.spiketrains):
+        params = {'t_start_ms': spike_train.t_start.rescale(pq.ms).item(),
+                  't_stop_ms': spike_train.t_stop.rescale(pq.ms).item(),
+                  'sampling_rate_hz': spike_train.sampling_rate.rescale(pq.Hz).item(),
+                  'description': spike_train.description,
+                  'file_origin': spike_train.file_origin}
+
+        if spike_train.name:
+            name = spike_train.name
+        else:
+            name = "spike train {}".format(i + 1)
+
+        inputs = Maps.newHashMap()
+        for m in epoch.getMeasurements():
+            inputs.put(m.getName(), m)
+
+        ar = epoch.addAnalysisRecord(name,
+                                     inputs,
+                                     protocol,
+                                     to_map(params)
+        )
+
+        #
+        spike_train.labels = ['spike time' for i in spike_train.shape]
+        spike_train.sampling_rates = [spike_train.sampling_rate for i in spike_train.shape]
+
+        spike_train.waveforms.labels = ['channel index', 'time', 'spike']
+        spike_train.waveforms.sampling_rates = [0, spike_train.sampling_rate, 0] * pq.Hz
+
+        insert_numeric_analysis_artifact(ar,
+                                         name,
+                                         {'spike times': spike_train,
+                                          'spike waveforms': spike_train.waveforms})
+
+
 def import_segment(epoch_group,
                    segment,
                    sources,
@@ -303,29 +343,9 @@ def import_segment(epoch_group,
     import_timeline_annotations(epoch, segment, start_time)
 
     if len(segment.spikes) > 0:
-        logging.warning("Segment contains Spikes. Import of Spike data is not yet implemented.")
+        logging.warning("Segment contains Spikes. Import of individual Spike data is not yet implemented (but SpikeTrains are).")
 
-    if len(segment.spiketrains) > 0:
-                logging.warning("Segment contains spike trains. Import of spike train data is not tested. "
-                                "Please consider sharing an example data file with the ovation-neo-importer project")
-
-    for spike_train in segment.spiketrains:
-        params = {'t_start_ms' : spike_train.t_start.rescale(pq.ms).item(),
-                   't_stop_ms' : spike_train.t_stop.rescale(pq.ms).item(),
-                   'sampling_rate_hz' : spike_train.sampling_rate.rescale(pq.Hz).item(),
-                   'description' : spike_train.description,
-                   'file_origin' : spike_train.file_origin}
-
-        ar = epoch.insertAnalysisRecord(spike_train.name,
-                                   Maps.newHashMap(),   #inputs?
-                                   protocol,            #protocol?
-                                   Maps.newHashMap()    #parameters?
-                                   )
-
-        insert_numeric_analysis_artifact(ar,
-                                         spike_train.name,
-                                         {'spike_time_s' : spike_train.times,
-                                         'spike_waveforms' : spike_train.waveforms})
+    import_spiketrains(epoch, protocol, segment)
 
 
 
