@@ -214,7 +214,7 @@ def import_block(epoch_group_container,
                        protocol=protocol,
                        equipment_setup_root=equipment_setup_root)
 
-    logging.info("Waiting for uploads to complete...")
+    log_info("Waiting for uploads to complete...")
     fs = epoch_group_container.getDataContext().getFileService()
     while(fs.hasPendingUploads()):
         fs.waitForPendingUploads(10, TimeUnit.SECONDS)
