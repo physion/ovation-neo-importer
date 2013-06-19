@@ -94,10 +94,10 @@ class TestAxonImport(TestBase):
         protocol2 = self.ctx.insertProtocol("protocol", "description")
 
         args = ['executable-name',
-                '--source={}'.format(str(self.src.getUuid())),
+                '--source={}'.format(str(self.src.getURI())),
                 '--timezone=America/New_York',
-                '--container={}'.format(str(expt2.getUuid())),
-                '--protocol={}'.format(str(protocol2.getUuid())),
+                '--container={}'.format(str(expt2.getURI())),
+                '--protocol={}'.format(str(protocol2.getURI())),
                 'fixtures/example1.abf',
                 ]
 

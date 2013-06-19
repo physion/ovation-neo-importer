@@ -18,13 +18,13 @@ def main(argv=sys.argv, dsc=None):
                   equipment_setup_root=None,
                   **args):
 
-        experiment = Experiment.cast_(data_context.getObjectWithUuid(UUID.fromString(container)))
-        protocol = Protocol.cast_(data_context.getObjectWithUuid(UUID.fromString(protocol)))
-        sources = [Source.cast_(data_context.getObjectWithUuid(UUID.fromString(source))) for source in sources]
+        container = EpochGroupContainer.cast_(data_context.getObjectWithURI(container))
+        protocol = Protocol.cast_(data_context.getObjectWithURI(protocol))
+        sources = [Source.cast_(data_context.getObjectWithURI(source)) for source in sources]
 
         for file in files:
             import_file(file,
-                        experiment,
+                        container,
                         equipment_setup_root,
                         sources,
                         protocol=protocol)
