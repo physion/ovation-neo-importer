@@ -215,7 +215,7 @@ def import_block(epoch_group_container,
                        equipment_setup_root=equipment_setup_root)
 
     log_info("Waiting for uploads to complete...")
-    fs = epoch_group_container.getDataContext().getFileService()
+    fs = OvationEntity.cast_(epoch_group_container).getDataContext().getFileService()
     while(fs.hasPendingUploads()):
         fs.waitForPendingUploads(10, TimeUnit.SECONDS)
 
