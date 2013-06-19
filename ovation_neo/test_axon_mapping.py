@@ -5,6 +5,7 @@ import numpy as np
 import quantities as pq
 from nose.tools import istest, assert_equals, assert_sequence_equal, assert_true
 from ovation.wrapper import property_annotatable
+from ovation.core import *
 import neo.core.epoch
 from neo.io import AxonIO
 from ovation import DateTime, Integer, Maps
@@ -265,7 +266,7 @@ class TestAxonImport(TestBase):
             for (k,v) in expected_params.iteritems():
                 actual = ar.getProtocolParameters().get(k)
                 if actual:
-                    assert(actual.equals(v), "k = v".format(k, v))
+                    assert(actual.equals(v))
 
             assert_equals(len(expected_params), ar.getProtocolParameters().size())
 

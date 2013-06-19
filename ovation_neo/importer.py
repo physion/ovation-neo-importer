@@ -305,11 +305,10 @@ def import_spiketrains(epoch, protocol, segment):
         for m in epoch.getMeasurements():
             inputs.put(m.getName(), m)
 
-        ar = epoch.addAnalysisRecord(name,
+        ar = epoch.insertAnalysisRecord(name,
                                      inputs,
                                      protocol,
-                                     to_map(params)
-        )
+                                     to_map(params))
 
         #
         spike_train.labels = ['spike time' for i in spike_train.shape]
