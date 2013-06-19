@@ -406,10 +406,10 @@ def import_analog_signal(epoch, analog_signal, equipment_setup_root):
         name = 'analog signal'
         log_warning("Analog signal does not have a name. Using '{}' as measurement and data name.".format(name))
 
-
+    device = '{}.channels.{}'.format(equipment_setup_root, channel_index)
     insert_numeric_measurement(epoch,
-                               set(),
-                               {channel_index},
+                                set(epoch.getInputSources().keySet()),
+                               {device},
                                name,
                                {name : analog_signal})
 
