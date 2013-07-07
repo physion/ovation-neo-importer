@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from ovation import *
-from ovation.core import *
 from ovation.importer import import_main
 from ovation_neo.importer import import_file
 
@@ -18,9 +16,9 @@ def main(argv=sys.argv, dsc=None):
                   equipment_setup_root=None,
                   **args):
 
-        container = EpochGroupContainer.cast_(data_context.getObjectWithURI(container))
-        protocol = Protocol.cast_(data_context.getObjectWithURI(protocol))
-        sources = [Source.cast_(data_context.getObjectWithURI(source)) for source in sources]
+        container = data_context.getObjectWithURI(container)
+        protocol = data_context.getObjectWithURI(protocol)
+        sources = [data_context.getObjectWithURI(source) for source in sources]
 
         for file in files:
             import_file(file,

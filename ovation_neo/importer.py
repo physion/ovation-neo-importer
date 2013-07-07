@@ -70,10 +70,8 @@ except ImportError:
 
 
 from ovation import *
-from ovation.core import *
-from ovation.conversion import to_map, to_java_set
+from ovation.conversion import to_map
 from ovation.data import insert_numeric_measurement, insert_numeric_analysis_artifact
-from ovation.wrapper import property_annotatable
 
 # Map from file extension to importer
 __IMPORTERS = {
@@ -197,12 +195,12 @@ def import_block(epoch_group_container,
         log_warning("Block does not contain a recording date/time. Using file modification time instead.")
         start_time = DateTime(*(datetime.fromtimestamp(file_mtime).timetuple()[:7]))
 
-    epochGroup = EpochGroupContainer.cast_(epoch_group_container).insertEpochGroup(group_label,
-                                                                                    start_time,
-                                                                                    protocol,
-                                                                                    to_map(merged_protocol_parameters),
-                                                                                    to_map(device_parameters)
-                                                                                )
+    epochGroup = epoch_group_container.insertEpochGroup(group_label,
+                                                        start_time,
+                                                        protocol,
+                                                        to_map(merged_protocol_parameters),
+                                                        to_map(device_parameters)
+    )
 
     if len(block.recordingchannelgroups) > 0:
         log_warning("Block contains RecordingChannelGroups. Import of RecordingChannelGroups is currently not supported.")
@@ -215,7 +213,7 @@ def import_block(epoch_group_container,
                        equipment_setup_root=equipment_setup_root)
 
     log_info("Waiting for uploads to complete...")
-    fs = OvationEntity.cast_(epoch_group_container).getDataContext().getFileService()
+    fs = epoch_group_container.getDataContext().getFileService()
     while(fs.hasPendingUploads()):
         fs.waitForPendingUploads(10, TimeUnit.SECONDS)
 
@@ -233,9 +231,9 @@ def import_timeline_annotations(epoch, segment, start_time):
                 description = event.description
         else:
             description = ""
-        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
-                                                               description,
-                                                               start_time.plusMillis(int(event_time.item())))
+        epoch.addTimelineAnnotation(event.name,
+                                    description,
+                                    start_time.plusMillis(int(event_time.item())))
     for event_array in segment.eventarrays:
         for (event_time, label) in zip(event_array.times, event_array.labels):
             if event_array.name:
@@ -249,9 +247,9 @@ def import_timeline_annotations(epoch, segment, start_time):
             else:
                 description = ""
 
-            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(name,
-                                                                   description,
-                                                                   start_time.plusMillis(int(event_time.item())))
+            epoch.addTimelineAnnotation(name,
+                                        description,
+                                        start_time.plusMillis(int(event_time.item())))
     for neoepoch in segment.epochs:
         event_time = neoepoch.time
         event_time.units = pq.ms
@@ -266,10 +264,10 @@ def import_timeline_annotations(epoch, segment, start_time):
             description = ""
 
 
-        TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(neoepoch.label,
-                                                               description,
-                                                               epoch_start,
-                                                               epoch_end)
+        epoch.addTimelineAnnotation(neoepoch.label,
+                                    description,
+                                    epoch_start,
+                                    epoch_end)
     for epoch_array in segment.epocharrays:
         for (event_time, duration, label) in zip(epoch_array.times, epoch_array.durations, epoch_array.labels):
             if epoch_array.name:
@@ -282,10 +280,10 @@ def import_timeline_annotations(epoch, segment, start_time):
             epoch_start = start_time.plusMillis(int(event_time.item()))
             epoch_end = epoch_start.plusMillis(int(duration.item()))
 
-            TimelineAnnotatable.cast_(epoch).addTimelineAnnotation(event.name,
-                                                                   event.description,
-                                                                   epoch_start,
-                                                                   epoch_end)
+            epoch.addTimelineAnnotation(event.name,
+                                        event.description,
+                                        epoch_start,
+                                        epoch_end)
 
 
 def import_spiketrains(epoch, protocol, segment):
@@ -338,7 +336,7 @@ def import_segment(epoch_group,
 
     segment_duration = max(arr.t_stop for arr in segment.analogsignals)
     segment_duration.units = 'ms' #milliseconds
-    start_time = DateTime(TimelineElement.cast_(epoch_group).getStart())
+    start_time = DateTime(epoch_group.getStart())
 
     inputSources = Maps.newHashMap()
     outputSources = Maps.newHashMap()
@@ -347,16 +345,16 @@ def import_segment(epoch_group,
         inputSources.put(s.getLabel(), s)
 
     device_parameters = dict(("{}.{}".format(equipment_setup_root, k), v) for (k,v) in segment.annotations.items())
-    epoch = EpochContainer.cast_(epoch_group).insertEpoch(inputSources,
-                                                          outputSources,
-                                                          start_time,
-                                                          start_time.plusMillis(int(segment_duration)),
-                                                          protocol,
-                                                          to_map(segment.annotations),
-                                                          to_map(device_parameters)
-                                                          )
+    epoch = epoch_group.insertEpoch(inputSources,
+                                    outputSources,
+                                    start_time,
+                                    start_time.plusMillis(int(segment_duration)),
+                                    protocol,
+                                    to_map(segment.annotations),
+                                    to_map(device_parameters)
+    )
     if segment.index is not None:
-        property_annotatable(epoch).addProperty('index', segment.index)
+        epoch.addProperty('index', segment.index)
 
     if len(segment.analogsignalarrays) > 0:
         log_warning("Segment contains AnalogSignalArrays. Import of AnalogSignalArrays is currently not supported")

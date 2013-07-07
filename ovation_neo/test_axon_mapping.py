@@ -1,18 +1,17 @@
 import logging
+from ovation import DateTime, Maps
 
 from neo import Event, EventArray, SpikeTrain
 import numpy as np
 import quantities as pq
 from nose.tools import istest, assert_equals, assert_sequence_equal, assert_true
-from ovation.wrapper import property_annotatable
-from ovation.core import *
 import neo.core.epoch
 from neo.io import AxonIO
-from ovation import DateTime, Integer, Maps
+
+from ovation.conversion import iterable
 from ovation.testing import TestBase
 from ovation.conversion import to_map, to_dict
 from ovation.data import as_data_frame
-
 from ovation_neo.importer import import_file, import_timeline_annotations, import_spiketrains
 from ovation_neo.__main__ import main
 
@@ -77,7 +76,7 @@ class TestAxonImport(TestBase):
     def should_store_segment_index(self):
         for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
             assert_equals(segment.index,
-                          Integer.cast_((property_annotatable(epoch).getUserProperty(epoch.getDataContext().getAuthenticatedUser(), 'index'))).intValue())
+                          (property_annotatable(epoch).getUserProperty(epoch.getDataContext().getAuthenticatedUser(), 'index'))).intValue()
 
     @istest
     def should_import_analog_segments_as_measurements(self):
@@ -103,18 +102,18 @@ class TestAxonImport(TestBase):
 
         main(argv=args, dsc=self.get_dsc())
 
-        epoch_group = list(EpochGroupContainer.cast_(expt2).getEpochGroups())[0]
+        epoch_group = list(expt2.getEpochGroups())[0]
         assert_equals(len(self.block.segments), len(set(epoch_group.getEpochs())), "should import one epoch per segment")
 
     @istest
     def should_set_device_parameters(self):
         assert_equals(self.device_info.keys(),
-                      to_dict(Experiment.cast_(self.epoch_group.getParent()).getEquipmentSetup().getDeviceDetails()).keys())
+                      to_dict(self.epoch_group.getParent().getEquipmentSetup().getDeviceDetails()).keys())
 
     @istest
     def should_set_device_for_analog_signals(self):
         for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
-            measurements = dict(((DataElement.cast_(m).getName(), m) for m in epoch.getMeasurements()))
+            measurements = dict(((m.getName(), m) for m in epoch.getMeasurements()))
 
             for signal in segment.analogsignals:
                 m = measurements[signal.name]
@@ -143,7 +142,7 @@ class TestAxonImport(TestBase):
         try:
             import_timeline_annotations(epoch, segment, epoch_start)
 
-            annotations = list(TimelineAnnotatable.cast_(epoch).getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
+            annotations = list(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
 
             assert(epoch_start.plusMillis(event_ms).equals(annotations[0].getStart()))
             assert_equals(1, len(annotations))
@@ -173,7 +172,7 @@ class TestAxonImport(TestBase):
         try:
             import_timeline_annotations(epoch, segment, epoch_start)
 
-            annotations = list(TimelineAnnotatable.cast_(epoch).getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
+            annotations = list(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
 
             assert_equals(2, len(annotations))
 
@@ -213,7 +212,7 @@ class TestAxonImport(TestBase):
         try:
             import_timeline_annotations(epoch, segment, epoch_start)
 
-            annotations = list(TimelineAnnotatable.cast_(epoch).getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
+            annotations = list(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
 
             assert_equals(1, len(annotations))
             assert_equals(epoch_start.plusMillis(10).getMillis(), annotations[0].getStart().getMillis())
@@ -270,7 +269,7 @@ class TestAxonImport(TestBase):
 
             assert_equals(len(expected_params), ar.getProtocolParameters().size())
 
-            data_map = DataElementContainer.cast_(ar).getDataElements()
+            data_map = ar.getDataElements()
             df = as_data_frame(data_map.get(spike_train.name))
 
             check_signal(spike_train, df['spike times'])
@@ -298,7 +297,7 @@ def check_numeric_measurement(signal, m):
 def check_measurements(segment, epoch):
     assert_equals(len(segment.analogsignals), len(list(epoch.getMeasurements())))
 
-    measurements = dict(((DataElement.cast_(m).getName(), m) for m in epoch.getMeasurements()))
+    measurements = dict(((m.getName(), m) for m in iterable(epoch.getMeasurements())))
 
     for signal in segment.analogsignals:
         m = measurements[signal.name]

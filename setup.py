@@ -8,8 +8,8 @@ It uses the Neo IO libraries to read compatible data files.
 An ovation.io account and the ovation-python library is required for use.
 """
 
-setup(name='Ovation Neo IO importer',
-      version='1.0',
+setup(name='ovation-neo',
+      version='1.0-beta1',
       description='Ovation import tools for Neo IO compatible data',
       long_description=LONG_DESCRIPTION,
       author='Physion',
@@ -18,7 +18,8 @@ setup(name='Ovation Neo IO importer',
       packages=['ovation_neo'],
       install_requires=['numpy>=1.7.1',
                         'quantities>=0.10.1',
-                        'neo==0.2.1.1'],
+                        'neo==0.2.1.1',
+                        'ovation>=2.0-beta2'],
       tests_require=['nose==1.3.0'],
       classifiers=[
           'Development Status :: 4 - Beta',
