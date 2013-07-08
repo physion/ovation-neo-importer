@@ -1,5 +1,4 @@
 import logging
-from ovation import DateTime, Maps
 
 from neo import Event, EventArray, SpikeTrain
 import numpy as np
@@ -8,10 +7,12 @@ from nose.tools import istest, assert_equals, assert_sequence_equal, assert_true
 import neo.core.epoch
 from neo.io import AxonIO
 
+from ovation import DateTime, Maps
 from ovation.conversion import iterable
 from ovation.testing import TestBase
-from ovation.conversion import to_map, to_dict
+from ovation.conversion import to_map, to_dict, asclass
 from ovation.data import as_data_frame
+
 from ovation_neo.importer import import_file, import_timeline_annotations, import_spiketrains
 from ovation_neo.__main__ import main
 
@@ -31,7 +32,8 @@ class TestAxonImport(TestBase):
                        u'amplifier.channels.0.gain': 2.5,
                        u'amplifier.channels.1.gain': 3.5}
 
-        exp.setEquipmentSetup(to_map(cls.device_info))
+        # TODO when we move to beta3
+        #exp.setEquipmentSetupFromMap(to_map(cls.device_info))
 
         cls.src = ctx.insertSource("recording source", "source-id")
 
@@ -62,25 +64,25 @@ class TestAxonImport(TestBase):
 
     @istest
     def should_import_one_epoch_per_block(self):
-        assert_equals(len(self.block.segments), len(set(self.epoch_group.getEpochs())), "should import one epoch per segment")
+        assert_equals(len(self.block.segments), len(set(iterable(self.epoch_group.getEpochs()))), "should import one epoch per segment")
 
 
     @istest
     def should_import_segment_annotations(self):
-        for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
+        for segment, epoch in zip(self.block.segments, iterable(self.epoch_group.getEpochs())):
             # Check protocol parameters
             for k, v in segment.annotations.iteritems():
                 assert_equals(v, epoch.getProtocolParameter(k))
 
     @istest
     def should_store_segment_index(self):
-        for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
+        for segment, epoch in zip(self.block.segments, iterable(self.epoch_group.getEpochs())):
             assert_equals(segment.index,
-                          (property_annotatable(epoch).getUserProperty(epoch.getDataContext().getAuthenticatedUser(), 'index'))).intValue()
+                          (epoch.getUserProperty(epoch.getDataContext().getAuthenticatedUser(), 'index')))
 
     @istest
     def should_import_analog_segments_as_measurements(self):
-        for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
+        for segment, epoch in zip(self.block.segments, iterable(self.epoch_group.getEpochs())):
             check_measurements(segment, epoch)
 
     @istest
@@ -93,32 +95,32 @@ class TestAxonImport(TestBase):
         protocol2 = self.ctx.insertProtocol("protocol", "description")
 
         args = ['executable-name',
-                '--source={}'.format(str(self.src.getURI())),
+                '--source={}'.format(self.src.getURI().toString()),
                 '--timezone=America/New_York',
-                '--container={}'.format(str(expt2.getURI())),
-                '--protocol={}'.format(str(protocol2.getURI())),
+                '--container={}'.format(expt2.getURI().toString()),
+                '--protocol={}'.format(protocol2.getURI().toString()),
                 'fixtures/example1.abf',
                 ]
 
         main(argv=args, dsc=self.get_dsc())
 
-        epoch_group = list(expt2.getEpochGroups())[0]
-        assert_equals(len(self.block.segments), len(set(epoch_group.getEpochs())), "should import one epoch per segment")
+        epoch_group = list(iterable(expt2.getEpochGroups()))[0]
+        assert_equals(len(self.block.segments), len(set(iterable(epoch_group.getEpochs()))), "should import one epoch per segment")
 
     @istest
     def should_set_device_parameters(self):
         assert_equals(self.device_info.keys(),
-                      to_dict(self.epoch_group.getParent().getEquipmentSetup().getDeviceDetails()).keys())
+                      to_dict(asclass("Experiment", self.epoch_group.getParent()).getEquipmentSetup().getDeviceDetails()).keys())
 
     @istest
     def should_set_device_for_analog_signals(self):
-        for segment, epoch in zip(self.block.segments, self.epoch_group.getEpochs()):
-            measurements = dict(((m.getName(), m) for m in epoch.getMeasurements()))
+        for segment, epoch in zip(self.block.segments, iterable(self.epoch_group.getEpochs())):
+            measurements = dict(((m.getName(), m) for m in iterable(epoch.getMeasurements())))
 
             for signal in segment.analogsignals:
                 m = measurements[signal.name]
                 assert_equals({"amplifier.channels.{}".format(signal.annotations['channel_index'])},
-                              set(m.getDevices()))
+                              set(iterable(m.getDevices())))
 
     @istest
     def should_import_events(self):
@@ -142,7 +144,7 @@ class TestAxonImport(TestBase):
         try:
             import_timeline_annotations(epoch, segment, epoch_start)
 
-            annotations = list(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
+            annotations = list(iterable(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser())))
 
             assert(epoch_start.plusMillis(event_ms).equals(annotations[0].getStart()))
             assert_equals(1, len(annotations))
@@ -172,7 +174,7 @@ class TestAxonImport(TestBase):
         try:
             import_timeline_annotations(epoch, segment, epoch_start)
 
-            annotations = list(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
+            annotations = list(iterable(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser())))
 
             assert_equals(2, len(annotations))
 
@@ -212,7 +214,7 @@ class TestAxonImport(TestBase):
         try:
             import_timeline_annotations(epoch, segment, epoch_start)
 
-            annotations = list(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser()))
+            annotations = list(iterable(epoch.getUserTimelineAnnotations(self.ctx.getAuthenticatedUser())))
 
             assert_equals(1, len(annotations))
             assert_equals(epoch_start.plusMillis(10).getMillis(), annotations[0].getStart().getMillis())
@@ -248,7 +250,7 @@ class TestAxonImport(TestBase):
         try:
             import_spiketrains(epoch, protocol2, segment)
 
-            records = list(epoch.getAnalysisRecords())
+            records = list(iterable(epoch.getAnalysisRecords()))
 
             assert_equals(1, len(records))
 
@@ -265,7 +267,7 @@ class TestAxonImport(TestBase):
             for (k,v) in expected_params.iteritems():
                 actual = ar.getProtocolParameters().get(k)
                 if actual:
-                    assert(actual.equals(v))
+                    assert_equals(v, actual)
 
             assert_equals(len(expected_params), ar.getProtocolParameters().size())
 
@@ -295,7 +297,7 @@ def check_numeric_measurement(signal, m):
 
 
 def check_measurements(segment, epoch):
-    assert_equals(len(segment.analogsignals), len(list(epoch.getMeasurements())))
+    assert_equals(len(segment.analogsignals), len(list(iterable(epoch.getMeasurements()))))
 
     measurements = dict(((m.getName(), m) for m in iterable(epoch.getMeasurements())))
 

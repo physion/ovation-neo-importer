@@ -69,8 +69,8 @@ except ImportError:
     pass
 
 
-from ovation import *
-from ovation.conversion import to_map
+from ovation import Maps, TimeUnit, DateTime
+from ovation.conversion import to_map, box_number, iterable, asclass
 from ovation.data import insert_numeric_measurement, insert_numeric_analysis_artifact
 
 # Map from file extension to importer
@@ -195,7 +195,7 @@ def import_block(epoch_group_container,
         log_warning("Block does not contain a recording date/time. Using file modification time instead.")
         start_time = DateTime(*(datetime.fromtimestamp(file_mtime).timetuple()[:7]))
 
-    epochGroup = epoch_group_container.insertEpochGroup(group_label,
+    epochGroup = asclass("us.physion.ovation.domain.mixin.EpochGroupContainer", epoch_group_container).insertEpochGroup(group_label,
                                                         start_time,
                                                         protocol,
                                                         to_map(merged_protocol_parameters),
@@ -300,10 +300,10 @@ def import_spiketrains(epoch, protocol, segment):
             name = "spike train {}".format(i + 1)
 
         inputs = Maps.newHashMap()
-        for m in epoch.getMeasurements():
+        for m in iterable(epoch.getMeasurements()):
             inputs.put(m.getName(), m)
 
-        ar = epoch.insertAnalysisRecord(name,
+        ar = epoch.addAnalysisRecord(name,
                                      inputs,
                                      protocol,
                                      to_map(params))
@@ -354,7 +354,7 @@ def import_segment(epoch_group,
                                     to_map(device_parameters)
     )
     if segment.index is not None:
-        epoch.addProperty('index', segment.index)
+        epoch.addProperty('index', box_number(segment.index))
 
     if len(segment.analogsignalarrays) > 0:
         log_warning("Segment contains AnalogSignalArrays. Import of AnalogSignalArrays is currently not supported")
@@ -405,7 +405,7 @@ def import_analog_signal(epoch, analog_signal, equipment_setup_root):
 
     device = '{}.channels.{}'.format(equipment_setup_root, channel_index)
     insert_numeric_measurement(epoch,
-                                set(epoch.getInputSources().keySet()),
+                               set(iterable(epoch.getInputSources().keySet())),
                                {device},
                                name,
                                {name : analog_signal})
