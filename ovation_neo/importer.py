@@ -69,7 +69,7 @@ except ImportError:
     pass
 
 
-from ovation import Maps, TimeUnit, DateTime
+from ovation import Maps, TimeUnit
 from ovation.conversion import to_map, box_number, iterable, asclass
 from ovation.data import insert_numeric_measurement, insert_numeric_analysis_artifact
 
@@ -195,6 +195,7 @@ def import_block(epoch_group_container,
         log_warning("Block does not contain a recording date/time. Using file modification time instead.")
         start_time = DateTime(*(datetime.fromtimestamp(file_mtime).timetuple()[:7]))
 
+
     epochGroup = asclass("us.physion.ovation.domain.mixin.EpochGroupContainer", epoch_group_container).insertEpochGroup(group_label,
                                                         start_time,
                                                         protocol,
@@ -208,7 +209,9 @@ def import_block(epoch_group_container,
     log_info("Importing segments from {}".format(block.file_origin))
     for seg in block.segments:
         log_info("Importing segment {} from {}".format(str(seg.index), block.file_origin))
-        import_segment(epochGroup, seg, sources,
+        import_segment(epochGroup,
+                       seg,
+                       sources,
                        protocol=protocol,
                        equipment_setup_root=equipment_setup_root)
 
@@ -342,6 +345,8 @@ def import_segment(epoch_group,
     outputSources = Maps.newHashMap()
 
     for s in sources:
+        if s:
+            s = asclass("Source", s)
         inputSources.put(s.getLabel(), s)
 
     device_parameters = dict(("{}.{}".format(equipment_setup_root, k), v) for (k,v) in segment.annotations.items())

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from ovation.conversion import asclass
 from ovation.importer import import_main
 from ovation_neo.importer import import_file
 
@@ -17,7 +18,12 @@ def main(argv=sys.argv, dsc=None):
                   **args):
 
         container = data_context.getObjectWithURI(container)
-        protocol = data_context.getObjectWithURI(protocol)
+        protocol_entity = data_context.getObjectWithURI(protocol)
+        if protocol_entity:
+            protocol = asclass("Protocol", protocol_entity)
+        else:
+            protocol = None
+
         sources = [data_context.getObjectWithURI(source) for source in sources]
 
         for file in files:
