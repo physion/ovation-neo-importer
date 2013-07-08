@@ -345,8 +345,6 @@ def import_segment(epoch_group,
     outputSources = Maps.newHashMap()
 
     for s in sources:
-        if s:
-            s = asclass("Source", s)
         inputSources.put(s.getLabel(), s)
 
     device_parameters = dict(("{}.{}".format(equipment_setup_root, k), v) for (k,v) in segment.annotations.items())

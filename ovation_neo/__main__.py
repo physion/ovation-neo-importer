@@ -24,7 +24,8 @@ def main(argv=sys.argv, dsc=None):
         else:
             protocol = None
 
-        sources = [data_context.getObjectWithURI(source) for source in sources]
+        source_entities = [data_context.getObjectWithURI(source) for source in sources]
+        sources = [asclass("Source", s) for s in source_entities if s is not None]
 
         for file in files:
             import_file(file,
