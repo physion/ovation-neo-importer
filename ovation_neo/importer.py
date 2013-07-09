@@ -69,7 +69,7 @@ except ImportError:
     pass
 
 
-from ovation import Maps, TimeUnit
+from ovation import Maps, TimeUnit, DateTime
 from ovation.conversion import to_map, box_number, iterable, asclass
 from ovation.data import insert_numeric_measurement, insert_numeric_analysis_artifact
 
