@@ -121,22 +121,22 @@ def import_file(file_path,
 
     Returns
     -------
-    The inserted `ovation.EpochGroup`
+    List of inserted `ovation.EpochGroups`, one for each `block` in input file
 
     """
 
     ext = os.path.splitext(file_path)[-1]
 
     reader = __IMPORTERS[ext](filename=file_path)
-    block = reader.read()
+    #block = reader.read()
 
-    return import_block(epoch_group_container,
+    return [import_block(epoch_group_container,
                         block,
                         equipment_setup_root,
                         sources,
                         protocol=protocol,
                         group_label=group_label,
-                        file_mtime=os.path.getmtime(file_path))
+                        file_mtime=os.path.getmtime(file_path)) for block in reader.read()]
 
 
 def import_block(epoch_group_container,

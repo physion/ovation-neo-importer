@@ -18,7 +18,7 @@ setup(name='ovation-neo',
       packages=['ovation_neo'],
       install_requires=['numpy>=1.7.1',
                         'quantities>=0.10.1',
-                        'neo==0.2.1.1',
+                        'neo==0.3.0',
                         'ovation>=2.0-beta2'],
       tests_require=['nose==1.3.0'],
       classifiers=[

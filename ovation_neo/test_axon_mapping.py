@@ -43,10 +43,10 @@ class TestAxonImport(TestBase):
         cls.epoch_group = import_file(abf_file,
                                       exp,
                                       "amplifier",
-                                      [cls.src])
+                                      [cls.src])[0] #single block
 
         reader = AxonIO(filename=abf_file)
-        cls.block = reader.read()
+        cls.block = reader.read()[0] # single block
 
 
     def setup(self):
