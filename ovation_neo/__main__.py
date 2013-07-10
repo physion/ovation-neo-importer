@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from ovation import *
-from ovation.core import *
+from ovation.conversion import asclass
 from ovation.importer import import_main
 from ovation_neo.importer import import_file
 
@@ -18,9 +17,14 @@ def main(argv=sys.argv, dsc=None):
                   equipment_setup_root=None,
                   **args):
 
-        container = EpochGroupContainer.cast_(data_context.getObjectWithURI(container))
-        protocol = Protocol.cast_(data_context.getObjectWithURI(protocol))
-        sources = [Source.cast_(data_context.getObjectWithURI(source)) for source in sources]
+        container = data_context.getObjectWithURI(container)
+        protocol_entity = data_context.getObjectWithURI(protocol)
+        if protocol_entity:
+            protocol = asclass("Protocol", protocol_entity)
+        else:
+            protocol = None
+
+        sources = [data_context.getObjectWithURI(source) for source in sources]
 
         for file in files:
             import_file(file,
