@@ -27,7 +27,7 @@ If you have data in a format that isn't currently supported by the Neo IO packag
 
 To use the the physiology data importer, install it into your Python interpreter from the terminal command line:
 
-	easy_install ovation_neo
+	pip install ovation-neo
 
 This will install the `ovation_neo` module and all of its dependencies.
 
