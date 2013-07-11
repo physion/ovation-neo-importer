@@ -9,7 +9,7 @@ An ovation.io account and the ovation-python library is required for use.
 """
 
 setup(name='ovation-neo',
-      version='1.0-beta1',
+      version='1.0-beta2',
       description='Ovation import tools for Neo IO compatible data',
       long_description=LONG_DESCRIPTION,
       author='Physion',
